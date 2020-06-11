@@ -27,7 +27,8 @@ spec:
   port:
     targetPort: 8200
   tls:
-    termination: passthrough
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
 {{- end }}
 {{- end }}
 {{- end }}

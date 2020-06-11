@@ -157,7 +157,7 @@ server:
     #      - chart-example.local
 
   # OpenShift only - create a route to expose the service
-  # The created route will be of type passthrough
+  # The created route will be of type reencrypt
   route:
     enabled: false
     labels: {}
