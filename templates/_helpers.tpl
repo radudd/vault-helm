@@ -96,6 +96,7 @@ extra volumes the user may have specified (such as a secret with TLS).
           {{- else if (eq .type "secret") }}
             secretName: {{ .name }}
           {{- end }}
+            defaultMode: {{ .defaultMode | default 420 }}
   {{- end }}
 {{- end -}}
 
@@ -343,6 +344,21 @@ Sets extra vault server Service annotations
       {{- tpl .Values.server.service.annotations . | nindent 4 }}
     {{- else }}
       {{- toYaml .Values.server.service.annotations | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+Sets PodSecurityPolicy annotations
+*/}}
+{{- define "vault.psp.annotations" -}}
+  {{- if .Values.global.psp.annotations }}
+  annotations:
+    {{- $tp := typeOf .Values.global.psp.annotations }}
+    {{- if eq $tp "string" }}
+      {{- tpl .Values.global.psp.annotations . | nindent 4 }}
+    {{- else }}
+      {{- toYaml .Values.global.psp.annotations | nindent 4 }}
     {{- end }}
   {{- end }}
 {{- end -}}

@@ -3,8 +3,11 @@
 Features:
 
 Improvements:
+* Added `defaultMode` configurable to `extraVolumes`[GH-321](https://github.com/hashicorp/vault-helm/pull/321)
+* Option to install and use PodSecurityPolicy's for vault server and injector [GH-177](https://github.com/hashicorp/vault-helm/pull/177)
 
 Bugs:
+* Fix python dependency in test image [GH-337](https://github.com/hashicorp/vault-helm/pull/337)
 
 ## 0.6.0 (June 3rd, 2020)
 
