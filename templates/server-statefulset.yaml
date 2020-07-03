@@ -59,7 +59,11 @@ spec:
         {{- if .Values.global.openshift }}	
         - name: {{ .Release.Name }}-vault-cert	
           secret:	
+        {{- if ne .mode "ha" }}	
             secretName: {{ .Release.Name }}-vault-cert	
+        {{- else }}
+            secretName: {{ .Release.Name }}-vault-cert-active
+        {{- end }}
             defaultMode: 420	
         {{- end }}
       {{- if .Values.server.extraInitContainers }}
