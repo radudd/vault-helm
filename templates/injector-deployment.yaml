@@ -23,6 +23,7 @@ spec:
         app.kubernetes.io/name: {{ template "vault.name" . }}-agent-injector
         app.kubernetes.io/instance: {{ .Release.Name }}
         component: webhook
+      {{ template "injector.annotations" . }}
     spec:
       {{ template "injector.affinity" . }}
       {{ template "injector.tolerations" . }}
@@ -75,6 +76,10 @@ spec:
             {{- if .Values.global.openshift }}
             - name: AGENT_INJECT_SET_SECURITY_CONTEXT
               value: "false"
+            {{- end }}
+            {{- if .Values.injector.metrics.enabled }}
+            - name: AGENT_INJECT_TELEMETRY_PATH
+              value: "/metrics"
             {{- end }}
             {{- include "vault.extraEnvironmentVars" .Values.injector | nindent 12 }}
           args:

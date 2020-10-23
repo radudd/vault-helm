@@ -123,8 +123,13 @@ for users looking to use this chart with Consul Helm.
 {{- define "vault.args" -}}
   {{ if or (eq .mode "standalone") (eq .mode "ha") }}
           - |
-            sed -E "s/HOST_IP/${HOST_IP?}/g" /vault/config/extraconfig-from-values.hcl > /tmp/storageconfig.hcl;
-            sed -Ei "s/POD_IP/${POD_IP?}/g" /tmp/storageconfig.hcl;
+            cp /vault/config/extraconfig-from-values.hcl /tmp/storageconfig.hcl;
+            [ -n "${HOST_IP}" ] && sed -Ei "s|HOST_IP|${HOST_IP?}|g" /tmp/storageconfig.hcl;
+            [ -n "${POD_IP}" ] && sed -Ei "s|POD_IP|${POD_IP?}|g" /tmp/storageconfig.hcl;
+            [ -n "${HOSTNAME}" ] && sed -Ei "s|HOSTNAME|${HOSTNAME?}|g" /tmp/storageconfig.hcl;
+            [ -n "${API_ADDR}" ] && sed -Ei "s|API_ADDR|${API_ADDR?}|g" /tmp/storageconfig.hcl;
+            [ -n "${TRANSIT_ADDR}" ] && sed -Ei "s|TRANSIT_ADDR|${TRANSIT_ADDR?}|g" /tmp/storageconfig.hcl;
+            [ -n "${RAFT_ADDR}" ] && sed -Ei "s|RAFT_ADDR|${RAFT_ADDR?}|g" /tmp/storageconfig.hcl;
             /usr/local/bin/docker-entrypoint.sh vault server -config=/tmp/storageconfig.hcl {{ .Values.server.extraArgs }}
   {{ end }}
 {{- end -}}
@@ -146,12 +151,12 @@ based on the mode configured.
 {{- define "vault.mounts" -}}
   {{ if eq (.Values.server.auditStorage.enabled | toString) "true" }}
             - name: audit
-              mountPath: /vault/audit
+              mountPath: {{ .Values.server.auditStorage.mountPath }}
   {{ end }}
   {{ if or (eq .mode "standalone") (and (eq .mode "ha") (eq (.Values.server.ha.raft.enabled | toString) "true"))  }}
     {{ if eq (.Values.server.dataStorage.enabled | toString) "true" }}
             - name: data
-              mountPath: /vault/data
+              mountPath: {{ .Values.server.dataStorage.mountPath }}
     {{ end }}
   {{ end }}
   {{ if and (ne .mode "dev") (or (.Values.server.standalone.config)  (.Values.server.ha.config)) }}
@@ -179,6 +184,7 @@ storage might be desired by the user.
       {{- if and (eq (.Values.server.dataStorage.enabled | toString) "true") (or (eq .mode "standalone") (eq (.Values.server.ha.raft.enabled | toString ) "true" )) }}
     - metadata:
         name: data
+        {{- include "vault.dataVolumeClaim.annotations" . | nindent 6 }}
       spec:
         accessModes:
           - {{ .Values.server.dataStorage.accessMode | default "ReadWriteOnce" }}
@@ -192,6 +198,7 @@ storage might be desired by the user.
       {{- if eq (.Values.server.auditStorage.enabled | toString) "true" }}
     - metadata:
         name: audit
+        {{- include "vault.auditVolumeClaim.annotations" . | nindent 6 }}
       spec:
         accessModes:
           - {{ .Values.server.auditStorage.accessMode | default "ReadWriteOnce" }}
@@ -269,13 +276,28 @@ Sets the injector node selector for pod placement
 Sets extra pod annotations
 */}}
 {{- define "vault.annotations" -}}
-  {{- if and (ne .mode "dev") .Values.server.annotations }}
+  {{- if .Values.server.annotations }}
       annotations:
         {{- $tp := typeOf .Values.server.annotations }}
         {{- if eq $tp "string" }}
           {{- tpl .Values.server.annotations . | nindent 8 }}
         {{- else }}
           {{- toYaml .Values.server.annotations | nindent 8 }}
+        {{- end }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+Sets extra injector pod annotations
+*/}}
+{{- define "injector.annotations" -}}
+  {{- if .Values.injector.annotations }}
+      annotations:
+        {{- $tp := typeOf .Values.injector.annotations }}
+        {{- if eq $tp "string" }}
+          {{- tpl .Values.injector.annotations . | nindent 8 }}
+        {{- else }}
+          {{- toYaml .Values.injector.annotations | nindent 8 }}
         {{- end }}
   {{- end }}
 {{- end -}}
@@ -293,6 +315,17 @@ Sets extra ui service annotations
       {{- toYaml .Values.ui.annotations | nindent 4 }}
     {{- end }}
   {{- end }}
+{{- end -}}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "vault.serviceAccount.name" -}}
+{{- if .Values.server.serviceAccount.create -}}
+    {{ default (include "vault.fullname" .) .Values.server.serviceAccount.name }}
+{{- else -}}
+    {{ default "default" .Values.server.serviceAccount.name }}
+{{- end -}}
 {{- end -}}
 
 {{/*
@@ -365,6 +398,51 @@ Sets PodSecurityPolicy annotations
       {{- tpl .Values.global.psp.annotations . | nindent 4 }}
     {{- else }}
       {{- toYaml .Values.global.psp.annotations | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+Sets extra statefulset annotations
+*/}}
+{{- define "vault.statefulSet.annotations" -}}
+  {{- if .Values.server.statefulSet.annotations }}
+  annotations:
+    {{- $tp := typeOf .Values.server.statefulSet.annotations }}
+    {{- if eq $tp "string" }}
+      {{- tpl .Values.server.statefulSet.annotations . | nindent 4 }}
+    {{- else }}
+      {{- toYaml .Values.server.statefulSet.annotations | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+Sets VolumeClaim annotations for data volume
+*/}}
+{{- define "vault.dataVolumeClaim.annotations" -}}
+  {{- if and (ne .mode "dev") (.Values.server.dataStorage.enabled) (.Values.server.dataStorage.annotations) }}
+  annotations:
+    {{- $tp := typeOf .Values.server.dataStorage.annotations }}
+    {{- if eq $tp "string" }}
+      {{- tpl .Values.server.dataStorage.annotations . | nindent 4 }}
+    {{- else }}
+      {{- toYaml .Values.server.dataStorage.annotations | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+Sets VolumeClaim annotations for audit volume
+*/}}
+{{- define "vault.auditVolumeClaim.annotations" -}}
+  {{- if and (ne .mode "dev") (.Values.server.auditStorage.enabled) (.Values.server.auditStorage.annotations) }}
+  annotations:
+    {{- $tp := typeOf .Values.server.auditStorage.annotations }}
+    {{- if eq $tp "string" }}
+      {{- tpl .Values.server.auditStorage.annotations . | nindent 4 }}
+    {{- else }}
+      {{- toYaml .Values.server.auditStorage.annotations | nindent 4 }}
     {{- end }}
   {{- end }}
 {{- end -}}

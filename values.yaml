@@ -10,7 +10,7 @@ global:
   #   - name: image-pull-secret
   # TLS for end-to-end encrypted transport
   tlsDisable: true
-  # Beta Feature: If deploying to OpenShift
+  # If deploying to OpenShift
   openshift: false
   # Create PodSecurityPolicy for pods
   psp:
@@ -27,6 +27,10 @@ injector:
   # True if you want to enable vault agent injection.
   enabled: true
 
+  # If true, will enable a node exporter metrics endpoint at /metrics.
+  metrics:
+    enabled: false
+
   # External vault server address for the injector to use. Setting this will
   # disable deployment of a vault server along with the injector.
   externalVaultAddr: ""
@@ -34,7 +38,7 @@ injector:
   # image sets the repo and tag of the vault-k8s image to use for the injector.
   image:
     repository: "hashicorp/vault-k8s"
-    tag: "0.4.0"
+    tag: "0.6.0"
     pullPolicy: IfNotPresent
 
   # agentImage sets the repo and tag of the Vault image to use for the Vault Agent
@@ -42,7 +46,7 @@ injector:
   # required.
   agentImage:
     repository: "vault"
-    tag: "1.4.2"
+    tag: "1.5.4"
 
   # Mount Path of the Vault Kubernetes Auth Method.
   authPath: "auth/kubernetes"
@@ -65,6 +69,12 @@ injector:
   #    matchLabels:
   #      sidecar-injector: enabled
   namespaceSelector: {}
+
+  # Configures failurePolicy of the webhook. By default webhook failures are ignored.
+  # To block pod creation while webhook is unavailable, set the policy to `Fail` below.
+  # See https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#failure-policy
+  #
+  # failurePolcy: Fail
 
   certs:
     # secretName is the name of the secret that has the TLS certificate and
@@ -93,7 +103,7 @@ injector:
   #     memory: 256Mi
   #     cpu: 250m
 
-  # extraEnvironmentVars is a list of extra enviroment variables to set in the
+  # extraEnvironmentVars is a list of extra environment variables to set in the
   # injector deployment.
   extraEnvironmentVars: {}
     # KUBERNETES_SERVICE_HOST: kubernetes.default.svc
@@ -118,6 +128,11 @@ injector:
   # Priority class for injector pods
   priorityClassName: ""
 
+  # Extra annotations to attach to the injector pods
+  # This can either be YAML or a YAML-formatted multi-line templated string map
+  # of the annotations to apply to the injector pods
+  annotations: {}
+
 server:
   # Resource requests, limits, etc. for the server cluster placement. This
   # should map directly to the value of the resources field for a PodSpec.
@@ -125,7 +140,7 @@ server:
 
   image:
     repository: "vault"
-    tag: "1.4.2"
+    tag: "1.5.4"
     # Overrides the default Image Pull Policy
     pullPolicy: IfNotPresent
 
@@ -214,11 +229,31 @@ server:
     enabled: true
     # If you need to use a http path instead of the default exec
     # path: /v1/sys/health?standbyok=true
+
+    # When a probe fails, Kubernetes will try failureThreshold times before giving up
+    failureThreshold: 2
+    # Number of seconds after the container has started before probe initiates
+    initialDelaySeconds: 5
+    # How often (in seconds) to perform the probe
+    periodSeconds: 5
+    # Minimum consecutive successes for the probe to be considered successful after having failed
+    successThreshold: 1
+    # Number of seconds after which the probe times out.
+    timeoutSeconds: 3
   # Used to enable a livenessProbe for the pods
   livenessProbe:
     enabled: false
     path: "/v1/sys/health?standbyok=true"
+    # When a probe fails, Kubernetes will try failureThreshold times before giving up
+    failureThreshold: 2
+    # Number of seconds after the container has started before probe initiates
     initialDelaySeconds: 60
+    # How often (in seconds) to perform the probe
+    periodSeconds: 5
+    # Minimum consecutive successes for the probe to be considered successful after having failed
+    successThreshold: 1
+    # Number of seconds after which the probe times out.
+    timeoutSeconds: 3
 
   # Used to set the sleep time during the preStop step
   preStopSleepSeconds: 5
@@ -231,14 +266,14 @@ server:
   # - -c
   # - /vault/userconfig/myscript/run.sh
 
-  # extraEnvironmentVars is a list of extra enviroment variables to set with the stateful set. These could be
+  # extraEnvironmentVars is a list of extra environment variables to set with the stateful set. These could be
   # used to include variables required for auto-unseal.
   extraEnvironmentVars: {}
     # GOOGLE_REGION: global
     # GOOGLE_PROJECT: myproject
     # GOOGLE_APPLICATION_CREDENTIALS: /vault/userconfig/myproject/myproject-creds.json
 
-  # extraSecretEnvironmentVars is a list of extra enviroment variables to set with the stateful set.
+  # extraSecretEnvironmentVars is a list of extra environment variables to set with the stateful set.
   # These variables take value from existing Secret objects.
   extraSecretEnvironmentVars: []
     # - envName: AWS_SECRET_ACCESS_KEY
@@ -294,6 +329,10 @@ server:
   #   beta.kubernetes.io/arch: amd64
   nodeSelector: null
 
+  # Enables network policy for server pods
+  networkPolicy:
+    enabled: false
+
   # Priority class for server pods
   priorityClassName: ""
 
@@ -341,11 +380,15 @@ server:
     enabled: true
     # Size of the PVC created
     size: 10Gi
+    # Location where the PVC will be mounted.
+    mountPath: "/vault/data"
     # Name of the storage class to use.  If null it will use the
     # configured default Storage Class.
     storageClass: null
     # Access Mode of the storage device being used for the PVC
     accessMode: ReadWriteOnce
+    # Annotations to apply to the PVC
+    annotations: {}
 
   # This configures the Vault Statefulset to create a PVC for audit
   # logs.  Once Vault is deployed, initialized and unseal, Vault must
@@ -356,11 +399,15 @@ server:
     enabled: false
     # Size of the PVC created
     size: 10Gi
+    # Location where the PVC will be mounted.
+    mountPath: "/vault/audit"
     # Name of the storage class to use.  If null it will use the
     # configured default Storage Class.
     storageClass: null
     # Access Mode of the storage device being used for the PVC
     accessMode: ReadWriteOnce
+    # Annotations to apply to the PVC
+    annotations: {}
 
   # Run Vault in "dev" mode. This requires no further setup, no state management,
   # and no initialization. This is useful for experimenting with Vault without
@@ -382,9 +429,9 @@ server:
     # and store data there. This is only used when using a Replica count of 1, and
     # using a stateful set. This should be HCL.
 
-    # Note: Configuration files are stored in ConfigMaps so sensitive data 
+    # Note: Configuration files are stored in ConfigMaps so sensitive data
     # such as passwords should be either mounted through extraSecretEnvironmentVars
-    # or through a Kube secret.  For more information see: 
+    # or through a Kube secret.  For more information see:
     # https://www.vaultproject.io/docs/platform/k8s/helm/run#protecting-sensitive-vault-configurations
     config: |
       ui = true
@@ -432,10 +479,10 @@ server:
       enabled: false
       # Set the Node Raft ID to the name of the pod
       setNodeId: false
-    
-      # Note: Configuration files are stored in ConfigMaps so sensitive data 
+
+      # Note: Configuration files are stored in ConfigMaps so sensitive data
       # such as passwords should be either mounted through extraSecretEnvironmentVars
-      # or through a Kube secret.  For more information see: 
+      # or through a Kube secret.  For more information see:
       # https://www.vaultproject.io/docs/platform/k8s/helm/run#protecting-sensitive-vault-configurations
       config: |
         ui = true
@@ -451,14 +498,14 @@ server:
         }
 
         service_registration "kubernetes" {}
-   
+
     # config is a raw string of default configuration when using a Stateful
     # deployment. Default is to use a Consul for its HA storage backend.
     # This should be HCL.
-    
-    # Note: Configuration files are stored in ConfigMaps so sensitive data 
+
+    # Note: Configuration files are stored in ConfigMaps so sensitive data
     # such as passwords should be either mounted through extraSecretEnvironmentVars
-    # or through a Kube secret.  For more information see: 
+    # or through a Kube secret.  For more information see:
     # https://www.vaultproject.io/docs/platform/k8s/helm/run#protecting-sensitive-vault-configurations
     config: |
       ui = true
@@ -495,10 +542,24 @@ server:
       maxUnavailable: null
 
   # Definition of the serviceAccount used to run Vault.
+  # These options are also used when using an external Vault server to validate
+  # Kubernetes tokens.
   serviceAccount:
+    # Specifies whether a service account should be created
+    create: true
+    # The name of the service account to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: ""
     # Extra annotations for the serviceAccount definition. This can either be
     # YAML or a YAML-formatted multi-line templated string map of the
     # annotations to apply to the serviceAccount.
+    annotations: {}
+
+  # Settings for the statefulSet used to run Vault.
+  statefulSet:
+    # Extra annotations for the statefulSet. This can either be YAML or a
+    # YAML-formatted multi-line templated string map of the annotations to apply
+    # to the statefulSet.
     annotations: {}
 
 # Vault UI
@@ -509,6 +570,9 @@ ui:
   # example, setting this to "LoadBalancer" will create an external load
   # balancer (for supported K8S installations) to access the UI.
   enabled: false
+  publishNotReadyAddresses: true
+  # The service should only contain selectors for active Vault pod
+  activeVaultPodOnly: false
   serviceType: "ClusterIP"
   serviceNodePort: null
   externalPort: 8200
