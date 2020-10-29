@@ -1,0 +1,51 @@
+{{- if .Values.global.vaultBootstrap }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-init
+spec:
+  selector: {}
+  template:
+    metadata:
+      name: vault-init
+    spec:
+      serviceAccount: {{ template "vault.fullname" . }}
+      containers:
+        - name: vault-init
+          image: {{ .Values.vaultBootstrap.image }}
+          imagePullPolicy: Always
+          command:
+          - /app/vault-bootstrap
+          env:
+            - name: VAULT_ADDR
+              value: https://{{ .Release.Name }}.{{ .Release.Namespace }}.svc:8200
+            - name: VAULT_CLUSTER_MEMBERS
+              value: {{ template "vault.nodes" . }}
+            - name: VAULT_STORAGE_CLUSTER_MEMBERS
+              value: {{ template "vault.storageNodes" . }}
+          {{- if .Values.vaultBootstrap.vaultKeyShares }}
+            - name: VAULT_KEY_SHARES
+              value: {{ .Values.vaultBootstrap.vaultKeyShares | quote }}
+          {{- end }}
+          {{- if .Values.vaultBootstrap.vaultKeyThreshold }}
+            - name: VAULT_KEY_THRESHOLD
+              value: {{ .Values.vaultBootstrap.vaultKeyThreshold | quote }}
+          {{- end }}
+          {{- if .Values.vaultBootstrap.vaultInit }}
+            - name: VAULT_ENABLE_INIT
+              value: {{ .Values.vaultBootstrap.vaultInit | quote }}
+          {{- end }}
+          {{- if .Values.vaultBootstrap.vaultK8sSecret }}
+            - name: VAULT_ENABLE_K8SSECRET
+              value: {{ .Values.vaultBootstrap.vaultK8sSecret | quote }}
+          {{- end }}
+          {{- if .Values.vaultBootstrap.vaultUnseal }}
+            - name: VAULT_ENABLE_UNSEAL
+              value: {{ .Values.vaultBootstrap.vaultUnseal | quote }}
+          {{- end }}
+          {{- if .Values.vaultBootstrap.vaultK8sAuth }}
+            - name: VAULT_ENABLE_K8SAUTH
+              value: {{ .Values.vaultBootstrap.vaultK8sAuth | quote }}
+          {{- end }}
+      restartPolicy: Never
+{{- end }}

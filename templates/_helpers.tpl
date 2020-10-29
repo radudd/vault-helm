@@ -502,3 +502,34 @@ Inject extra environment populated by secrets, if populated
 {{ "https" }}
 {{- end -}}
 {{- end -}}
+
+{{- define "vault.nodes" -}}
+{{- if not .Values.vaultBootstrap.vaultClusterMembers -}}
+{{- $nodeCount := .Values.server.ha.replicas | int }}
+{{- $release := .Release.Name -}}
+  {{- range $index0 := until $nodeCount -}}
+    {{- $index1 := $index0 | add1 -}}
+https://{{ $release }}-{{ $index0 }}.{{ $release }}-internal:8200{{ if ne $index1 $nodeCount }},{{ end }}
+  {{- end -}}
+{{- else -}}
+{{ .Values.vaultBootstrap.vaultClusterMembers }}
+{{- end -}}
+{{- end -}}
+
+{{- define "vault.storageNodes" -}}
+{{- if not .Values.vaultBootstrap.storageClusterMembers -}}
+{{- if .Values.consul -}}
+{{- $storageNodeCount := .Values.consul.server.replicas | int }}
+{{- $storageNodeName := .Values.consul.nameOverride }}
+{{- $storageNodeRelease := .Release.Name -}}
+  {{- range $index0 := until $storageNodeCount -}}
+    {{- $index1 := $index0 | add1 -}}
+https://{{ $storageNodeRelease }}-{{ $storageNodeName }}-server-{{ $index0 }}.{{ $storageNodeRelease }}-{{ $storageNodeName }}-server:8500{{ if ne $index1 $storageNodeCount }},{{ end }}
+  {{- end -}}
+{{- else -}}
+""
+{{- end -}}
+{{- else -}}
+{{ .Values.vaultBootstrap.storageClusterMembers }}
+{{- end -}}
+{{- end -}}
