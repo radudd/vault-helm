@@ -1,0 +1,31 @@
+apiVersion: v1
+entries:
+  vault:
+  - apiVersion: v2
+    appVersion: 1.5.4
+    created: "2020-10-31T18:39:42.420083+01:00"
+    dependencies:
+    - name: consul
+      repository: https://helm.releases.hashicorp.com
+      version: 0.25.0
+    description: Official HashiCorp Vault Chart
+    digest: ca36dd4d4e18705c74eeadea1f5b37381773b1ebe6e103406f0df3d256f15581
+    home: https://www.vaultproject.io
+    icon: https://github.com/hashicorp/vault/raw/f22d202cde2018f9455dec755118a9b84586e082/Vault_PrimaryLogo_Black.png
+    keywords:
+    - vault
+    - security
+    - encryption
+    - secrets
+    - management
+    - automation
+    - infrastructure
+    name: vault
+    sources:
+    - https://github.com/hashicorp/vault
+    - https://github.com/hashicorp/vault-helm
+    - https://github.com/hashicorp/vault-k8s
+    urls:
+    - https://radudd.github.io/vault-helm/vault-0.8.1-ocp.tgz
+    version: 0.8.1-ocp
+generated: "2020-10-31T18:39:42.408438+01:00"
