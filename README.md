@@ -1,44 +1,35 @@
-# Vault Helm Chart
+## About
 
-> :warning: **Please note**: We take Vault's security and our users' trust very seriously. If 
-you believe you have found a security issue in Vault Helm, _please responsibly disclose_ 
-by contacting us at [security@hashicorp.com](mailto:security@hashicorp.com).
+This repo is a fork from the official HashiCorp Vault Helm charts and is optimised for OpenShift. It is different in the following aspects:
 
-This repository contains the official HashiCorp Helm chart for installing
-and configuring Vault on Kubernetes. This chart supports multiple use
-cases of Vault on Kubernetes depending on the values provided.
+* OpenShift Routes are of type Re-encrypt and not Passthrough
+* Services are signed using OpenShift CA Signer
+* There is the possibility to use [Vault Bootstrap](github.com/radudd/vault-bootstrap). This is an Golang batch script that can peform the following actions:
+** Initialize Vault
+** Save Vault root token and unseal keys - for the moment this is limited to save into K8S secret, which is it insecure. However, the script should be extended to use other external secure stores, like AWS KMS, Azure KeyVault, etc.
+** Unsealing Vault 
+** Enable Vault K8S authentication
 
-For full documentation on this Helm chart along with all the ways you can
-use Vault with Kubernetes, please see the
-[Vault and Kubernetes documentation](https://www.vaultproject.io/docs/platform/k8s/).
+## HA Scenario
 
-## Prerequisites
+The HA scenario is optimised for using Consul as a backend, with Vault connecting directly to Consul servers and through agents. This is due to the fact that in order to deploy Consul agents on OpenShift an additional SCC to allow pods to run Host Network would be required.
 
-To use the charts here, [Helm](https://helm.sh/) must be configured for your
-Kubernetes cluster. Setting up Kubernetes and Helm and is outside the scope of
-this README. Please refer to the Kubernetes and Helm documentation.
+*DISCLAIMER*: HashiCorp recommends using in general a Consul Agent when Consul is used as backend storage for Vault.
 
-The versions required are:
+In an Vault deployment using SSL, the usage of RAFT storage has some limitation because the imposibility of the OpenShift CA signer to generate SSL certificates with SANs. When using RAFT storage, the SSL certificates must match both the Vault instance and Vault Load Balancer. 
 
-  * **Helm 3.0+** - This is the earliest version of Helm tested. It is possible
-    it works with earlier versions but this chart is untested for those versions.
-  * **Kubernetes 1.9+** - This is the earliest version of Kubernetes tested.
-    It is possible that this chart works with earlier versions but it is
-    untested. Other versions verified are Kubernetes 1.10, 1.11.
+## Deploy
 
-## Usage
+If deploying HA Vault with Consul backend, first update the `override-ha.yaml` according to your needs.
 
-To install the latest version of this chart, add the Hashicorp helm repository
-and run `helm install`:
+Then fetch Consul Helm chart dependency.
 
-```console
-$ helm repo add hashicorp https://helm.releases.hashicorp.com
-"hashicorp" has been added to your repositories
-
-$ helm install vault hashicorp/vault
+```
+helm dep update
 ```
 
-Please see the many options supported in the `values.yaml` file. These are also
-fully documented directly on the [Vault
-website](https://www.vaultproject.io/docs/platform/k8s/helm) along with more
-detailed installation instructions.
+Finally install Vault 
+
+```
+helm install vault . -f override-ha.yaml
+```
