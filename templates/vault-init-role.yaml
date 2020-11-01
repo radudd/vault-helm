@@ -14,5 +14,3 @@ rules:
 - apiGroups: [""] 
   resources: ["serviceaccounts"]
   verbs: ["get", "watch", "list"]
-  resourceNames:
-    - {{ template "vault.fullname" . }}
