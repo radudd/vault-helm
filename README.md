@@ -17,7 +17,7 @@ You can find an example on using Consul as a storage backend for HA. In this exa
 
 > :warning: **DISCLAIMER**: HashiCorp recommends using in general a Consul Agent when Consul is used as backend storage for Vault. Details [here](https://learn.hashicorp.com/tutorials/vault/ha-with-consul#consul-client-agent-configuration)
 
-> :warning: **DISCLAIMER**: Consul doesn't use ACLs for our first scenario, so Consul endpoint must be secured. Anyone with anonymous access to Consul might *delete* Vault data. For production usage, you should implement ACLs. Use the following references: [Vault](https://www.vaultproject.io/docs/configuration/storage/consul#acls) and [Consul](https://www.consul.io/docs/k8s/helm#v-global-acls-bootstraptoken) and/or our [minimal implementation](#Consul-HA-ACL)
+> :warning: **DISCLAIMER**: Consul doesn't use ACLs for our first scenario, so Consul endpoint must be secured. Anyone with anonymous access to Consul might *delete* Vault data. For production usage, you should implement ACLs. Use the following references: [Vault](https://www.vaultproject.io/docs/configuration/storage/consul#acls) and [Consul](https://www.consul.io/docs/k8s/helm#v-global-acls-bootstraptoken). You can also check the [minimal implementation](#Consul-HA-ACL) from this repository.
 
 In an Vault deployment using SSL, the usage of RAFT storage has some limitation because the imposibility of the OpenShift CA signer to generate SSL certificates with SANs. When using RAFT storage, the SSL certificates must match both the Vault instance and Vault Load Balancer. 
 
@@ -67,5 +67,5 @@ sed -i "/token/s/dummytoken/$TOKEN" override/vault-ha-consul-acl.yaml
 
 Finally install Vault
 ```
-
+helm install vault . -f override/vault-ha-consul-acl.yaml
 ```
