@@ -1,0 +1,69 @@
+# Tags
+tags:
+  consul: true
+
+# Available parameters and their default values for the Vault chart.
+global:
+  tlsDisable: false
+  openshift: true
+  # Custom
+  vaultBootstrap: true
+
+### Custom part for Vault Bootstraper
+vaultBootstrap:
+  image: quay.io/radudd/vault-bootstrap:latest
+  vaultKeyShares: 3
+  vaultKeyThreshold: 2
+  ## Bootstrap capabilities
+  # Init
+  vaultInit: true
+  # Save to K8s secret. If false, it will printed in the vault-bootstrap logs
+  vaultK8sSecret: false
+  # Unseal
+  vaultUnseal: true
+  # Enable K8s auth
+  vaultK8sAuth: true
+  # init job will wait for the members specified below to be in running status before they kick in
+  # additionally members in this list are used as input for the unseal part
+  # leave both these values empty if you wish Helm to pre-populate them. If running the job standalone, you may need to update them.
+  vaultClusterMembers: 
+  storageClusterMembers: 
+### 
+
+server:
+  route:
+    enabled: true
+    host: vault.apps.ocp.bdmsky.net
+  ha:
+    enabled: true
+    replicas: 3
+    config: |
+      ui = true
+      listener "tcp" {
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+        tls_cert_file = "/var/run/secrets/kubernetes.io/certs/tls.crt"
+        tls_key_file = "/var/run/secrets/kubernetes.io/certs/tls.key"
+      }
+      storage "consul" {
+        path = "vault"
+        address = "vault-backend-consul-server:8500"
+      }
+      telemetry {
+        prometheus_retention_time = "30s"
+        disable_hostname = true
+      }
+      service_registration "kubernetes" {}
+
+consul:
+  global:
+    openshift:
+      enabled: true
+  nameOverride: backend-consul
+  server: 
+    replicas: 3
+    storage: 5Gi
+    storageClass: local-sc
+    affinity: ""
+  client: 
+    enabled: false
