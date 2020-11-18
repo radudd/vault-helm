@@ -1,7 +1,3 @@
-# Tags
-tags:
-  consul: true
-
 # Available parameters and their default values for the Vault chart.
 global:
   tlsDisable: false
@@ -33,7 +29,7 @@ vaultBootstrap:
 server:
   route:
     enabled: true
-    host: vault.apps.ocp.bdmsky.net
+    host: vault.apps.cluster.domain
   ha:
     enabled: true
     replicas: 3
@@ -54,16 +50,3 @@ server:
         disable_hostname = true
       }
       service_registration "kubernetes" {}
-
-consul:
-  global:
-    openshift:
-      enabled: true
-  nameOverride: backend-consul
-  server: 
-    replicas: 3
-    storage: 5Gi
-    storageClass: local-sc
-    affinity: ""
-  client: 
-    enabled: false

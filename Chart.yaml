@@ -10,9 +10,3 @@ sources:
   - https://github.com/hashicorp/vault
   - https://github.com/hashicorp/vault-helm
   - https://github.com/hashicorp/vault-k8s
-dependencies:
-  - name: consul
-    version: 0.25.0
-    repository: "https://helm.releases.hashicorp.com"
-    tags:
-    - consul

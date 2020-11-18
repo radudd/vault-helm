@@ -1,0 +1,10 @@
+global:
+  openshift:
+    enabled: true
+server: 
+  replicas: 3
+  storage: 5Gi
+  storageClass: local-sc
+  affinity: ""
+client: 
+  enabled: false

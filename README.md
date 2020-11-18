@@ -32,13 +32,17 @@ If deploying HA Vault with Consul backend(no agents and no ACLs), first update t
 Then fetch Consul Helm chart dependency.
 
 ```
-helm dep update
+helm repo add hashicorp https://helm.releases.hashicorp.com
+```
+
+```
+helm install vault-backend hashicorp/consul -f override/consul-noacl.yaml
 ```
 
 Finally install Vault 
 
 ```
-helm install vault . -f override/ha-consul-noacl.yaml
+helm install vault . -f override/vault-ha-consul-noacl.yaml
 ```
 
 ### Consul HA ACL
@@ -50,7 +54,7 @@ helm repo add hashicorp https://helm.releases.hashicorp.com
 ```
 
 ```
-helm install consul hashicorp/consul -f override/consul-acl.yaml
+helm install vault-backend hashicorp/consul -f override/consul-acl.yaml
 ```
 
 Extract the generated ACL token
