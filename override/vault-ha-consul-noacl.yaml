@@ -23,7 +23,7 @@ vaultBootstrap:
   # additionally members in this list are used as input for the unseal part
   # leave both these values empty if you wish Helm to pre-populate them. If running the job standalone, you may need to update them.
   vaultClusterMembers: 
-  storageClusterMembers: 
+  storageClusterMembers: https://vault-backend-consul-server-0.vauul-backend-consul-server:8500,https://vauul-backend-consul-server-1.vauul-backend-consul-server:8500,https://vauul-backend-consul-server-2.vauul-backend-consul-server:8500
 ### 
 
 server:
